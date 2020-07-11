@@ -1,0 +1,50 @@
+TKL is MATLAB code provided to reviewers for Neural Information Processing Systems 2020 paper 8165.
+
+
+Table of Contents
+=================
+- Installation
+- Examples
+
+
+Installation 
+=================
+TKL requires a modified build of libsvm-3.24 (included).  To compile libsvm-3.24:
+
+On Unix systems go into the libsvm-3.24 folder and type 'make'.
+
+On other systems, consult `Makefile' to build them (e.g., see
+'Building Windows binaries' in this file) or use the pre-built
+binaries (Windows binaries are in the directory `windows').
+
+Once libsvm-3.24 has been built right click on the add all folders and subfolders of the TessellatedKernelLearning folder to your matlab path.
+
+
+Examples 
+=================
+See example for an example of classification and see exampleRegression for an example of a regression problem.
+
+The simplest format for using TKL is:
+
+[SVM] = TKL(x,y);
+
+where x is an mxn matrix of inputs and y is an mx1 vector of outputs that are either real valued or binary.
+
+Alternatively,
+
+[SVM] = TKL(x,y,type,C,params);
+
+allows the user to select a type of Support Vector Machine as either 'Classification' or 'Regression', an error penalty C, and a set of learning parameters.
+
+params = paramsTKL(degree,bound,Eps,tol,maxit);
+
+where
+degree = degree of the TK kernel function,
+bound  = controls the bounds of integration: [a,b] = [0-bound,1+bound] for the TK kernel function,
+Eps    = the value of epsilon in the epsilon-loss function for the regression problem,
+tol    = tolerance of the stopping criteria,
+maxit  = maximum number of iterations.
+
+To evaluate the learned function on a set of inputs, xTest, use:
+
+[yPred] = evaluateSVM(SVM,xTest);
