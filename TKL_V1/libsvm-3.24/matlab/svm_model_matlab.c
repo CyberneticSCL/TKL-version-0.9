@@ -10,7 +10,7 @@ typedef int mwIndex;
 #endif
 #endif
 
-#define NUM_OF_RETURN_FIELD 12
+#define NUM_OF_RETURN_FIELD 11
 
 #define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 
@@ -19,7 +19,6 @@ static const char *field_names[] = {
 	"nr_class",
 	"totalSV",
 	"rho",
-    "obj",
 	"Label",
 	"sv_indices",
 	"ProbA",
@@ -68,14 +67,6 @@ const char *model_to_matlab_structure(mxArray *plhs[], int num_of_feature, struc
 		ptr[i] = model->rho[i];
 	out_id++;
 
-    // obj
-	n = model->nr_class*(model->nr_class-1)/2;
-	rhs[out_id] = mxCreateDoubleMatrix(n, 1, mxREAL);
-	ptr = mxGetPr(rhs[out_id]);
-	for(i = 0; i < n; i++)
-		ptr[i] = model->obj[i];
-	out_id++;
-    
 	// Label
 	if(model->label)
 	{
@@ -239,7 +230,6 @@ struct svm_model *matlab_matrix_to_model(const mxArray *matlab_struct, const cha
 
 	model = Malloc(struct svm_model, 1);
 	model->rho = NULL;
-    model->obj = NULL;
 	model->probA = NULL;
 	model->probB = NULL;
 	model->label = NULL;
@@ -271,14 +261,6 @@ struct svm_model *matlab_matrix_to_model(const mxArray *matlab_struct, const cha
 		model->rho[i] = ptr[i];
 	id++;
 
-    // obj
-	n = model->nr_class * (model->nr_class-1)/2;
-	model->obj = (double*) malloc(n*sizeof(double));
-	ptr = mxGetPr(rhs[id]);
-	for(i=0;i<n;i++)
-		model->obj[i] = ptr[i];
-	id++;
-    
 	// label
 	if(mxIsEmpty(rhs[id]) == 0)
 	{

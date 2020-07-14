@@ -396,8 +396,8 @@ public:
 	virtual ~Solver() {};
 
 	struct SolutionInfo {
+		double obj;
 		double rho;
-        double obj;
 		double upper_bound_p;
 		double upper_bound_n;
 		double r;	// for Solver_NU
@@ -1642,7 +1642,6 @@ struct decision_function
 {
 	double *alpha;
 	double rho;
-    double obj;
 };
 
 static decision_function svm_train_one(
@@ -1699,7 +1698,6 @@ static decision_function svm_train_one(
 	decision_function f;
 	f.alpha = alpha;
 	f.rho = si.rho;
-    f.obj = si.obj;
 	return f;
 }
 
@@ -2119,9 +2117,6 @@ svm_model *svm_train(const svm_problem *prob, const svm_parameter *param)
 		decision_function f = svm_train_one(prob,param,0,0);
 		model->rho = Malloc(double,1);
 		model->rho[0] = f.rho;
-        
-        model->obj = Malloc(double,1);
-		model->obj[0] = f.obj;
 
 		int nSV = 0;
 		int i;
@@ -2242,11 +2237,6 @@ svm_model *svm_train(const svm_problem *prob, const svm_parameter *param)
 		model->rho = Malloc(double,nr_class*(nr_class-1)/2);
 		for(i=0;i<nr_class*(nr_class-1)/2;i++)
 			model->rho[i] = f[i].rho;
-        
-        model->obj = Malloc(double,nr_class*(nr_class-1)/2);
-		for(i=0;i<nr_class*(nr_class-1)/2;i++)
-			model->obj[i] = f[i].obj;
-        
 
 		if(param->probability)
 		{
@@ -2909,7 +2899,6 @@ svm_model *svm_load_model(const char *model_file_name)
 
 	svm_model *model = Malloc(svm_model,1);
 	model->rho = NULL;
-    model->obj = NULL;
 	model->probA = NULL;
 	model->probB = NULL;
 	model->sv_indices = NULL;
@@ -2923,7 +2912,6 @@ svm_model *svm_load_model(const char *model_file_name)
 		setlocale(LC_ALL, old_locale);
 		free(old_locale);
 		free(model->rho);
-        free(model->obj);
 		free(model->label);
 		free(model->nSV);
 		free(model);
@@ -3022,9 +3010,6 @@ void svm_free_model_content(svm_model* model_ptr)
 
 	free(model_ptr->rho);
 	model_ptr->rho = NULL;
-    
-    free(model_ptr->obj);
-	model_ptr->obj = NULL;
 
 	free(model_ptr->label);
 	model_ptr->label= NULL;
