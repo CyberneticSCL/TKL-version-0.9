@@ -47,4 +47,4 @@ maxit  = maximum number of iterations.
 
 To evaluate the learned function on a set of inputs, xTest, use:
 
-[yPred] = evaluateSVM(SVM,xTest);
+[yPred] = evaluateTKL(SVM,xTest);
