@@ -1,4 +1,4 @@
-TKL is MATLAB code provided to reviewers for Neural Information Processing Systems 2020 paper 8165.
+TKL is MATLAB code provided to learn an optimal regression or binary classification problem and select an optimal TK kernel function with respect to the supplied data.
 
 
 Table of Contents
