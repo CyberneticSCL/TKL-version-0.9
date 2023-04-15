@@ -1,0 +1,42 @@
+clc, clear
+
+dataSet = 2;
+numTrials = 5; % Must be an integer between 1 and 5
+%% 1 = Data\airfoil.mat
+%% 2 = Data\abalone.mat
+%% 3 = Data\CCPP.mat
+%% 4 = Data\gasTurbine.mat
+%% 5 = Data\hillValley.mat
+%% 6 = Data\shillBid.mat
+
+%% Load Data and Parameters
+switch dataSet
+    case 2
+        load('Data/airfoil.mat'); p = load('Data/Airfoil_Deg1.mat');
+        Type = 'Regression'; C = p.D.C; % Calculated using 2-fold CV
+    case 1
+        load('Data/Abalone.mat'); p = load('Data/abalone_Deg1.mat');
+        Type = 'Classification'; C = p.D.C; % Calculated using 2-fold CV
+    otherwise
+        error('That dataset does not exist.  Please enter an integer between 1 and 6.')
+end
+
+params.maxit = 100; params.epsilon = .1; params.tol = .01; params.degree = 1;
+for n = 1:numTrials
+    x = D{n}.x; y = D{n}.y; xTest = D{n}.xTest; yTest = D{n}.yTest; 
+    params.bound = p.D.bound(n);
+    
+    %% Train the Support Vector Machine
+    params = paramsTKL(1, p.D.bound(n), .01, 100, p.D.tol);
+    [SVM] = TKL(x,y,Type,C(n),params);
+    time(n) = sum(SVM.Opt.T);
+    
+    yPred = evaluateTKL(SVM,xTest);
+    if strcmp(Type,'Regression')
+        mse(n) = sum((yTest-yPred').^2)./length(yTest);
+    else
+        tsa(n) = sum(yTest == yPred')./length(yTest);
+    end
+end
+    
+    

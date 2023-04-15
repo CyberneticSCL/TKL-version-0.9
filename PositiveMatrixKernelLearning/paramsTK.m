@@ -1,7 +1,7 @@
-function [params] = paramsTKL(degree,bound,epsilon,maxit,tol)
+function [params] = paramsTK(degree,bound,epsilon,maxit,tol)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% [params] = paramsTKL(degree,bound,epsilon,maxit,tol) function takes
-% degree, bound, epsilon, maxit, and tol parameters as inputs for TKL
+% [params] = paramsTK(degree,bound,epsilon,maxit,tol) function takes
+% degree, bound, epsilon, maxit, and tol parameters as inputs for TK kernel
 % functions.  Entering an empty array as an input means the default value
 % will be used.
 % 
@@ -15,61 +15,40 @@ function [params] = paramsTKL(degree,bound,epsilon,maxit,tol)
 % OUTPUT
 % params: A variable containing the saved parameter values to be given to TKL.  
 % 
-% NOTES:
-% For support, contact M. Peet, Arizona State University at mpeet@asu.edu
-% or B.K. Colbert at brendon.colbert@asu.edu
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% TKL - paramsTKL
+% PMKL - paramsTK
 %
-% Copyright (C)2019  M. Peet, B.K. Colbert
 %
-% This program is free software; you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation; either version 2 of the License, or
-% (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+% This program is provided to the reviewers of NeurIPS 2021.
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% If you modify this code, document all changes carefully and include date
-% authorship, and a brief description of modifications
-%
-% Initial coding MMP, BKC  - 12_15_2020
-%
 
 %% Default Parameters
-params.deg = 1; % Degree
+params.kernel = 'TK';
+params.degree = 1; % Degree
 params.bound = .5; % Bounds of iteration
 params.epsilon = .1; % Epsilon
 params.maxit   = 100; % Maximum iterations
-params.tol     = 1e-3; % degree
+params.tol     = 1e-2; % Stopping tolerance
 
 
 %% Insert non-default parameters depending on the arguments supplied as inputs.
 if nargin == 1
     if ~isempty(degree)
-        params.deg = degree;
+        params.degree = degree;
     end
 elseif nargin == 2
     if ~isempty(degree)
-        params.deg = degree;
+        params.degree = degree;
     end
     if ~isempty(bound)
         params.bound = bound;
     end
 elseif nargin == 3
     if ~isempty(degree)
-        params.deg = degree;
+        params.degree = degree;
     end
     if ~isempty(bound)
         params.bound = bound;
@@ -79,7 +58,7 @@ elseif nargin == 3
     end
 elseif nargin == 4
     if ~isempty(degree)
-        params.deg = degree;
+        params.degree = degree;
     end
     if ~isempty(bound)
         params.bound = bound;
@@ -92,7 +71,7 @@ elseif nargin == 4
     end
 elseif nargin == 5
     if ~isempty(degree)
-        params.deg = degree;
+        params.degree = degree;
     end
     if ~isempty(bound)
         params.bound = bound;
@@ -107,6 +86,7 @@ elseif nargin == 5
         params.tol = tol;
     end
 end
-
+params.regul_alpha  = 0;
+params.restart_iter = 10000;
 end
 

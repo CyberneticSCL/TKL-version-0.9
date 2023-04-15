@@ -5,44 +5,22 @@ function [SVM,Obj] = findAlpha(SVM,Kernel)
 % machine with respect to the current kernel function.
 % 
 % INPUT
-% SVM:    Optimized TK SVM (output of TKL function).
+% SVM:    SVM object.
 % Kernel: An internal kernel object used for quickly calculating the kernel matrix.
 %
 % OUTPUT
-% SVM:    Optimized TK SVM (for current TK kernel).
-% Obj:    The objective value of the SVM with the current TK kernel.
+% SVM:    Optimized SVM (for specified kernel).
+% Obj:    The objective value of the SVM with the current kernel.
 % 
-% NOTES:
-% For support, contact M. Peet, Arizona State University at mpeet@asu.edu
-% or B.K. Colbert at brendon.colbert@asu.edu
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% TKL - findAlpha
+% PMKL - findAlpha
 %
-% Copyright (C)2019  M. Peet, B.K. Colbert
 %
-% This program is free software; you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation; either version 2 of the License, or
-% (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+% This program is provided to the reviewers of NeurIPS 2021.
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% If you modify this code, document all changes carefully and include date
-% authorship, and a brief description of modifications
-%
-% Initial coding MMP, BKC  - 12_15_2020
-%
 
 if strcmp(SVM.type,'Classification')
     %%%%%%%%%%%%%%%%%% LIBSVM %%%%%%%%%%%%%%%%%%%%
