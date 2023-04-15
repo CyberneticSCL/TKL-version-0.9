@@ -26,17 +26,17 @@ See example for an example of classification and see exampleRegression for an ex
 
 The simplest format for using TKL is:
 
-[SVM] = TKL(x,y);
+[SVM] = PMKL(x,y);
 
 where x is an mxn matrix of inputs and y is an mx1 vector of outputs that are either real valued or binary.
 
 Alternatively,
 
-[SVM] = TKL(x,y,type,C,params);
+[SVM] = PMKL(x,y,type,C,params);
 
 allows the user to select a type of Support Vector Machine as either 'Classification' or 'Regression', an error penalty C, and a set of learning parameters.
 
-params = paramsTKL(degree,bound,Eps,tol,maxit);
+params = paramsTK(degree,bound,Eps,tol,maxit);
 
 where
 degree = degree of the TK kernel function,
@@ -47,4 +47,4 @@ maxit  = maximum number of iterations.
 
 To evaluate the learned function on a set of inputs, xTest, use:
 
-[yPred] = evaluateTKL(SVM,xTest);
+[yPred] = evaluatePMKL(SVM,xTest);
