@@ -1,0 +1,15 @@
+cff-version: 1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Colbert
+    given-names: Brendon
+    orcid: https://orcid.org/0000-0003-1580-555X
+  - family-names: Talitckii
+    given-names: Aleksandr
+    orcid: https://orcid.org/0000-0002-4214-338X
+  - family-names: Peet
+    given-names: Matthew
+    orcid: https://orcid.org/0000-0001-9360-6738
+title: "Tessellated Kernel Learning (PMKL)"
+version: 1.0 
+date-released: 2021-08-03
