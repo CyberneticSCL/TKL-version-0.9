@@ -3,9 +3,9 @@ import itertools
 import math
 from matplotlib import pyplot as plt
 from libsvm import svmutil
-from PMKL_v2 import KernelFunctions
-import low_rank_QP
-import Low_Rank_Kernel_Decomp
+from Fast_TKL import KernelFunctions
+from Fast_TKL import low_rank_QP
+from Fast_TKL import Low_Rank_Kernel_Decomp
 
 import scipy as sp
 from scipy.sparse.linalg import eigsh

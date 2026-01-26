@@ -7,12 +7,10 @@ import scipy.io
 import itertools
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import SVC, SVR
-from PMKL_v2 import KernelFunctions
-from PMKL_v2 import Optimization
-from PMKL_v2 import Transformation
+from PMKL import KernelFunctions
+from PMKL import Optimization
+from PMKL import Transformation
 import time
-from tqdm import trange
-
 Kernel = KernelFunctions.Kernel
 makeK  = KernelFunctions.makeK
 TKtest = KernelFunctions.TKtest
@@ -21,7 +19,7 @@ findP     = Optimization.findP
 findAlpha = Optimization.findAlpha
 monomials = Transformation.monomials
 
-class PMKL_v2():
+class PMKL():
     def __init__(self, C = 10,  degree = 1, bound = 0.1, epsilon = 0.1, maxit = 100, tol = 1.e-6, probability = False, to_print= True):
         '''
         C:      Regularization parameter, smaller values lead to mappings that are more general.
@@ -55,10 +53,11 @@ class PMKL_v2():
 
 
         
-    def fit(self, x, y, rank = 500):
+    def fit(self, x, y, subset_Z = 2):
         '''
         x:      Inputs to be mapped to outputs y. It should be numpy array (n_samples, n_features)
         y:      Outputs. (n_samples)
+        subset_Z: if we need to include K22 or only K11 term
         '''
         start = time.time()
         Eps = self.Params.epsilon
@@ -90,15 +89,15 @@ class PMKL_v2():
         scaleFactor = MinMaxScaler()
         self.x  = scaleFactor.fit_transform(self.xOld)
         self.scaleFactor = scaleFactor
-        self.rank = rank
+        
         num, dim = self.x.shape # Dimension and number of inputs
         
         self.Params.Lower =  self.x.min(axis = 0) - self.Params.bound # Lower bounds of integration
         self.Params.Upper =  self.x.max(axis = 0) + self.Params.bound # Upper bounds of integration
         
         self.Kernel = Kernel(self.x, self.Params.Lower, self.Params.Upper, self.Params.degree)
-        self.Kernel.low_rank_kernel_SVD(self.rank)
-        self.Params.q = self.Kernel.Z.shape[1]
+        Kernel.subset_Z = subset_Z;
+        self.Params.q = 2 * self.Kernel.Z.shape[1]
 #         print(self.Kernel.K[1,1].shape, self.Kernel.Z.shape)
         q = self.Params.q 
         self.Params.P = np.eye(q) # Initialize P matrix
@@ -112,73 +111,53 @@ class PMKL_v2():
         maxit = self.Params.maxit
         go = True
         iteration = 0
-        Obj = Optimization.findAlpha_lowRankQP(self, self.Kernel)
+        Obj = findAlpha(self, self.Kernel)
         self.Opt.Obj.append(Obj)
-        self.Opt.diff = np.abs(self.Opt.Obj[-1]-self.Opt.Obj[-2])/np.abs(self.Opt.Obj[-1] + self.Opt.Obj[-2])*200 
+        self.Opt.diff = np.abs(self.Opt.Obj[-1]-self.Opt.Obj[-2])/np.abs(self.Opt.Obj[-1] + self.Opt.Obj[-2])*200 # Calculates the percent difference between objective values
         end = time.time()
         self.parsing_time = end - start
-        # Calculates the percent difference between objective values
         if self.to_print:
             print('Iteration   |  Objective   |       Dual Gap      | \n')
             print('------------+--------------+---------------------| \n')
-
 #         return self
         while go:
+            
+#             go = False
+#             break
             iteration = iteration+1;
-            Optimization.findP_lowRank(self, self.Kernel) # Updates the P matrix which parameterizes the Positive Matrix Kernel Function.
+            findP(self, self.Kernel) # Updates the P matrix which parameterizes the Positive Matrix Kernel Function.
             if (iteration > maxit) or (np.min([self.Opt.dualGap2[-1],self.Opt.dualGap[-1]]) < self.Params.tol) or (self.Opt.StepLength[-1] < 1/100*self.Params.tol) :
             ### Quits if maxit > current iteration or if the objective function change was too small.
                 go = False;
             if self.to_print:
-                print('%10d  |  %1.4e  |  %1.4e \n' % (iteration, self.Opt.Obj[-1], self.Opt.dualGap[-1]))
+                print('%10d  |  %1.4e  |  %1.4e \n' % (iteration, self.Opt.Obj[-1], np.min(self.Opt.dualGap[-1])))
 #         Ktrain = makeK(self.Kernel, self.Params.P)
-#         self.model.fit(Ktrain, self.y)
+#         self.model = self.model.fit(Ktrain, self.y)
         return self
         
-    def predict(self, Xtest_old, BATCH_SIZE = 10000):
+    def predict(self, Xtest_old):
         '''
         
         '''
-
-        if self.Type == 'Classification':
-            alpha = self.Params.alpha*self.y
-            alpha_hat = self.Params.eigvec.T@alpha
-            alpha_hat = self.Params.eigvec@alpha_hat
-        else:
-            alpha = self.Params.alpha
-            alpha_hat = self.Params.eigvec.T@alpha
-            alpha_hat = self.Params.eigvec@alpha_hat
-            
-        print(alpha_hat.shape)
         xTest = self.scaleFactor.transform(Xtest_old)
-        xtrain = self.x
+        xtrain = self.x[self.Params.pos, :]
         
         dimx = xtrain.shape[1]
         numx = xtrain.shape[0]
         numtest = xTest.shape[0]
         
-        yPred =  np.zeros(len(xTest))
+        Kt = TKtest(xtrain, xTest, 
+                    self.Kernel.Z[self.Params.pos, :], monomials(xTest,self.Params.degree),
+                    self.Params.Lower,self.Params.Upper, self.Params.P)
         
-        for idx in trange(0, len(xtrain), BATCH_SIZE):
-            left = idx
-            right = min(idx + BATCH_SIZE, len(xtrain))
-            Kt = TKtest(xtrain[left:right, :], xTest, 
-                        self.Kernel.Z[left:right, :], monomials(xTest,self.Params.degree),
-                        self.Params.Lower, self.Params.Upper, self.Params.P, self.Params.add_poly)
-            
-#             yPred = yPred + self.Params.alpha[left:right, :].T@Kt
         
-#             if self.Type == 'Classification':
-#                 yPred = np.sign(yPred)
-                
-#             if self.Type == 'Classification':
-#                 vec = self.Params.alpha[left:right, :]*self.y[left:right]
-#                 yPred = yPred + vec.T@Kt - self.Params.rho# + self.model.intercept_
-#     #             yPred = np.sign(yPred)
+        if self.Type == 'Classification':
+            vec = self.Params.alpha*self.y[self.Params.pos]
+            yPred = vec.T@Kt - self.Params.rho# + self.model.intercept_
+#             yPred = np.sign(yPred)
 
-#             else:
-            yPred = yPred + alpha_hat[left:right, :].T@Kt - self.Params.rho# + self.model.intercept_
-
+        else:
+            yPred = self.Params.alpha.T@Kt - self.Params.rho# + self.model.intercept_
             
         if yPred.shape[0] == 1:
             yPred = yPred[0, :]
@@ -239,7 +218,7 @@ class ParamsTK():
         self.tol = tol
 
         self.kernel = 'TK' 
-        self.add_poly = True
+        
         
 class Opt():
     def __init__(self):
