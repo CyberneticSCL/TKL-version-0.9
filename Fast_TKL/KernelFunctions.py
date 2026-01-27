@@ -4,7 +4,7 @@ import math
 from matplotlib import pyplot as plt
 from libsvm import svmutil
 from Fast_TKL import Transformation
-import Low_Rank_Kernel_Decomp
+from Fast_TKL import Low_Rank_Kernel_Decomp
 import time
 monomials = Transformation.monomials
 
@@ -208,33 +208,37 @@ def TKtest(x,y,Z1,Z2,a,b,P, add_poly = False):
 
     numx    = x.shape[0]
     numtest = y.shape[0]
-    Ktemp = {}
+    # Ktemp = {}
     dim = x.shape[1];
     for n in range(dim):
-        kTemp1 = np.kron(x[:,n][:, np.newaxis],np.ones((1,numtest)))
-        kTemp2 = np.kron(y[:,n][:, np.newaxis],np.ones((1,numx))).T
+        kTemp1 = np.maximum(x[:, n, np.newaxis], y[np.newaxis, :, n])
+        # Ktemp = Ktemp*(b[n] - kTemp1)
+        # kTemp1 = np.kron(x[:,n][:, np.newaxis],np.ones((1,numtest)))
+        # kTemp2 = np.kron(y[:,n][:, np.newaxis],np.ones((1,numx))).T
         if n == 0:
-            Ktemp[1,1] = b[n] - np.maximum(kTemp1,kTemp2)
-            Ktemp[1,2] = b[n] - kTemp1
-            Ktemp[2,1] = b[n] - kTemp2
+            Ktemp = b[n] - kTemp1
+            # Ktemp = b[n] - np.maximum(kTemp1,kTemp2)
+        #     # Ktemp[1,2] = b[n] - kTemp1
+        #     # Ktemp[2,1] = b[n] - kTemp2
         else:
-            Ktemp[1,1] = Ktemp[1,1]*(b[n] - np.maximum(kTemp1,kTemp2))
-            Ktemp[1,2] = Ktemp[1,2]*(b[n] - kTemp1)
-            Ktemp[2,1] = Ktemp[2,1]*(b[n] - kTemp2)
+            Ktemp = Ktemp*(b[n] - kTemp1)
+            # Ktemp = Ktemp*(b[n] - np.maximum(kTemp1,kTemp2))
+        #     # Ktemp[1,2] = Ktemp[1,2]*(b[n] - kTemp1)
+            # Ktemp[2,1] = Ktemp[2,1]*(b[n] - kTemp2)
         
-#         print(kTemp2.shape, kTemp1.shape, np.maximum(kTemp1,kTemp2).shape, Ktemp[1,1].shape)
-    Ktemp[1,2] = Ktemp[1,2] - Ktemp[1,1];
-    Ktemp[2,1] = Ktemp[2,1] - Ktemp[1,1];
-    Ktemp[2,2] = np.prod(b-a) - Ktemp[1,1] - Ktemp[1,2] - Ktemp[2,1];
+# #         print(kTemp2.shape, kTemp1.shape, np.maximum(kTemp1,kTemp2).shape, Ktemp[1,1].shape)
+#     Ktemp[1,2] = Ktemp[1,2] - Ktemp[1,1];
+#     Ktemp[2,1] = Ktemp[2,1] - Ktemp[1,1];
+#     Ktemp[2,2] = np.prod(b-a) - Ktemp[1,1] - Ktemp[1,2] - Ktemp[2,1];
 
     K = np.zeros((numx,numtest))
     q = 2*len(P)
-    for i in range(1, 2):
-        for j in range(1, 2):
-            K = K + Ktemp[i,j]*(Z1@P[int(q/2*(i-1)):int(q/2*i),int(q/2*(j-1)):int(q/2*j)]@Z2.T);
+    # for i in range(1, 2):
+# for j in range(1, 2):
+    K = K + Ktemp*(Z1@P@Z2.T);
             
     if add_poly:
-        K = Z1@Z2.T
+        K = K + Z1@Z2.T
     return K
 
 

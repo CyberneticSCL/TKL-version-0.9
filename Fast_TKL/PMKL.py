@@ -135,11 +135,13 @@ class PMKL_v2():
 #         self.model.fit(Ktrain, self.y)
         return self
         
-    def predict(self, Xtest_old, BATCH_SIZE = 10000):
+    def predict(self, Xtest_old, BATCH_SIZE = 1000):
         '''
-        
+        Predicts output of the model for input Xtest
+        BATCH_SIZE is to limit the  memory usage
         '''
 
+        # Project alpha to the span of the eigenvectors
         if self.Type == 'Classification':
             alpha = self.Params.alpha*self.y
             alpha_hat = self.Params.eigvec.T@alpha
@@ -156,14 +158,15 @@ class PMKL_v2():
         dimx = xtrain.shape[1]
         numx = xtrain.shape[0]
         numtest = xTest.shape[0]
+
+        Ztest = monomials(xTest,self.Params.degree)
+        yPred =  np.zeros((len(xTest),1))
         
-        yPred =  np.zeros(len(xTest))
-        
-        for idx in trange(0, len(xtrain), BATCH_SIZE):
+        for idx in trange(0, len(xTest), BATCH_SIZE):
             left = idx
-            right = min(idx + BATCH_SIZE, len(xtrain))
-            Kt = TKtest(xtrain[left:right, :], xTest, 
-                        self.Kernel.Z[left:right, :], monomials(xTest,self.Params.degree),
+            right = min(idx + BATCH_SIZE, len(xTest))
+            Kt = TKtest(xtrain, xTest[left:right, :], 
+                        self.Kernel.Z, Ztest[left:right, :],
                         self.Params.Lower, self.Params.Upper, self.Params.P, self.Params.add_poly)
             
 #             yPred = yPred + self.Params.alpha[left:right, :].T@Kt
@@ -177,7 +180,7 @@ class PMKL_v2():
 #     #             yPred = np.sign(yPred)
 
 #             else:
-            yPred = yPred + alpha_hat[left:right, :].T@Kt - self.Params.rho# + self.model.intercept_
+            yPred[left:right, :] = (alpha_hat.T@Kt).T - self.Params.rho# + self.model.intercept_
 
             
         if yPred.shape[0] == 1:

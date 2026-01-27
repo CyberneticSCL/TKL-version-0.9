@@ -4,8 +4,8 @@ import numba as nb
 from numba import jit, njit, prange
 
 import scipy as sp 
-from PMKL import KernelFunctions
-from PMKL import Transformation
+from Fast_TKL import KernelFunctions
+from Fast_TKL import Transformation
 
 
 import itertools
@@ -16,7 +16,7 @@ from tqdm import trange
 
 from scipy.sparse.linalg import eigsh, eigs, LinearOperator
 
-import Fast_Ker_Vec
+from Fast_TKL import Fast_Ker_Vec
 
 @njit
 def compute_submatrix_product_without_r(vector, indeces, inverse_indeces,  chol_diag):
