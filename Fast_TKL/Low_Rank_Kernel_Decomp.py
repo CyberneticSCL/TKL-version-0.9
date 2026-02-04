@@ -48,13 +48,23 @@ def compute_sub1DKernel_diagonal(data, alpha_l, alpha_r,  b, a):
     # Outputs
     # Diagonal of Kernel Matrix -- ndarray (n_samples, ) """
     N = len(data)
+       
+#     print(N)
+#     print('\n\n')
+    monom = alpha_l + alpha_r + 1       
+#     print(monom)
+#     print('\n\n')
 
-    monom = alpha_l + alpha_r + 1
-
-    KKTemp  =  data  
-    intZZT  = (b**monom - KKTemp**monom)/monom   
+    KKTemp  =  data         
+#     print(KKTemp)
+#     print('\n\n')
+    intZZT  = (b**monom - KKTemp**monom)/monom          
+#     print(intZZT)
+#     print('\n\n')
 #     ZZT = (data[:, np.newaxis]**alpha_l)@(data[np.newaxis, :]**alpha_r)
-    Sub_Kernel_Matrix = intZZT
+    Sub_Kernel_Matrix = intZZT       
+#     print(Sub_Kernel_Matrix)
+#     print('\n\n')
     return Sub_Kernel_Matrix
 
 
@@ -75,13 +85,27 @@ def eig_of_1d_matrix(data, monomial_i, monomial_j, indeces, rindeces, rank, b, a
 #     b = kernel_parameters.b;
 #     a = kernel_parameters.a;
     sorted_data = data[indeces]
+    
+#     print(sorted_data)
+#     print('\n\n')
     diag_of_subK = compute_sub1DKernel_diagonal(sorted_data, monomial_i, monomial_j, b, a ) #O(n)
+
+#     print(diag_of_subK)
+#     print('\n\n')
+    
     chol_factor = diag_of_subK.copy() 
     chol_factor[1:] = chol_factor[1:] - chol_factor[:-1]
     
+#     print(chol_factor)
+#     print('\n\n')
+
     matvecproduct = lambda x: compute_submatrix_product_without_r(x, indeces, rindeces,  chol_factor) 
     A = LinearOperator((len(data),len(data)), matvec=matvecproduct )
     eig, vec = eigsh(A, k=rank)
+    
+       
+#     print(eig)
+#     print('\n\n')
 
     return eig, vec #O(rn)
 
@@ -332,12 +356,22 @@ def eigs_of_Gij_v3(data, D,  monomial_i, monomial_j, indeces, rindeces, rank, b,
 
             #             print(data.shape, sorted_data.shape, len(data)  )
             diag_of_subK = compute_sub1DKernel_diagonal(sorted_data, monomial_i[d], monomial_j[d], b[d], a[d] ) #O(n)
+ 
+
             chol_factor = diag_of_subK.copy() 
             chol_factor[1:] = chol_factor[1:] - chol_factor[:-1]
             # v2 faster for large data sets due to parallelization
             # v1 faster for small data sets due to vectorization
             U_permut = U[subindeces, :]
             SUT = (S*U_permut).T
+            
+#             print(U)
+#             print('\n\n')
+#             print(subindeces)
+#             print('\n\n')
+#             print(U_permut)
+#             print('\n\n')
+
             matvecproduct = lambda x: product_subkernel_otimes_lowdim_par(x, SUT, U_permut, chol_factor) #O(rn)
 
             #             print((len(sorted_data),len(sorted_data)))
@@ -346,6 +380,7 @@ def eigs_of_Gij_v3(data, D,  monomial_i, monomial_j, indeces, rindeces, rank, b,
 #             Ul = Ul[subrindeces, :]
             S = Sl.copy()
             U = Ul[subrindeces, :].copy()
+#         print(S)
 
     return S, U #O(D r^2 n)
 

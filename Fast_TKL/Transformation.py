@@ -48,6 +48,10 @@ def monomials(X, d):
     OUTPUT
     z: Monomial basis of the input data.  
     '''
+    if d == 1:
+        Z = np.c_[ np.ones(len(X)), X ]  
+        return Z
+    
     prob_dim = X.shape[-1]
     monomial_index = np.array(list(itertools.product(list(range(d+1)), repeat = prob_dim)))
     monomial_index = monomial_index[monomial_index.sum(axis = -1) <= d][:,::-1]

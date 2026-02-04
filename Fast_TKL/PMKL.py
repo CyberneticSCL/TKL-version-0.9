@@ -6,7 +6,7 @@ from libsvm import svmutil
 import scipy.io
 import itertools
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.svm import SVC, SVR
+# from sklearn.svm import SVC, SVR
 from Fast_TKL import KernelFunctions
 from Fast_TKL import Optimization
 from Fast_TKL import Transformation
@@ -55,7 +55,7 @@ class PMKL_v2():
 
 
         
-    def fit(self, x, y, rank = 500):
+    def fit(self, x, y, rank = 500, additional_rank = 0):
         '''
         x:      Inputs to be mapped to outputs y. It should be numpy array (n_samples, n_features)
         y:      Outputs. (n_samples)
@@ -91,23 +91,24 @@ class PMKL_v2():
         self.x  = scaleFactor.fit_transform(self.xOld)
         self.scaleFactor = scaleFactor
         self.rank = rank
+        self.additional_rank = additional_rank
         num, dim = self.x.shape # Dimension and number of inputs
         
         self.Params.Lower =  self.x.min(axis = 0) - self.Params.bound # Lower bounds of integration
         self.Params.Upper =  self.x.max(axis = 0) + self.Params.bound # Upper bounds of integration
         
         self.Kernel = Kernel(self.x, self.Params.Lower, self.Params.Upper, self.Params.degree)
-        self.Kernel.low_rank_kernel_SVD(self.rank)
+        self.Kernel.low_rank_kernel_SVD(self.rank + self.additional_rank)
         self.Params.q = self.Kernel.Z.shape[1]
 #         print(self.Kernel.K[1,1].shape, self.Kernel.Z.shape)
         q = self.Params.q 
         self.Params.P = np.eye(q) # Initialize P matrix
 
         
-        if self.Type == 'Classification':
-            self.model = SVC(C = self.Params.C, kernel = 'precomputed', probability = self.prob)
-        else:
-            self.model = SVR(C = self.Params.C, epsilon = self.Params.epsilon, kernel = 'precomputed')
+#         if self.Type == 'Classification':
+#             self.model = SVC(C = self.Params.C, kernel = 'precomputed', probability = self.prob)
+#         else:
+#             self.model = SVR(C = self.Params.C, epsilon = self.Params.epsilon, kernel = 'precomputed')
             
         maxit = self.Params.maxit
         go = True
@@ -151,7 +152,6 @@ class PMKL_v2():
             alpha_hat = self.Params.eigvec.T@alpha
             alpha_hat = self.Params.eigvec@alpha_hat
             
-        print(alpha_hat.shape)
         xTest = self.scaleFactor.transform(Xtest_old)
         xtrain = self.x
         

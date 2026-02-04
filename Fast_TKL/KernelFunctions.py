@@ -16,6 +16,9 @@ class Kernel():
     '''
     def __init__(self, x, Lower, Upper, degree):
 #         self.K = initK(x, Lower, Upper)
+#         if degree ==1 :
+#             self.Z = np.c_[ np.ones(len(x)), x ]  # add 0 monomial 
+#         else:
         self.Z = monomials(x, degree)
         self.b = Upper
         self.a = Lower
@@ -24,15 +27,23 @@ class Kernel():
         
         
     def low_rank_kernel_SVD(self, rank):
+        '''
+        low rank approximation of the kernel matrix
+        '''
         deg1 = 0
         deg2 = self.degree
         X = self.x
 
         N_d = X.shape[-1]
+        # monomial index 1 is always a single element if deg1 = 0
         monomial_index_1 = np.array(list(itertools.product(list(range(deg1+1)), repeat = N_d)))
         monomial_index_1 = monomial_index_1[monomial_index_1.sum(axis = -1) <= deg1][:,::-1]
         # Z1 = monomials(Udata, deg_1)
 
+        # monomial index 2 -- monomials exponents
+#         if deg2 == 1:
+#             monomial_index_2 = np.eye(N_d) # only monomials with the first power
+#         else:
         monomial_index_2 = np.array(list(itertools.product(list(range(deg2+1)), repeat = N_d)))
         monomial_index_2 = monomial_index_2[monomial_index_2.sum(axis = -1) <= deg2][:,::-1]
 
@@ -40,7 +51,7 @@ class Kernel():
         n_1 = len(monomial_index_1)
         n_2 = len(monomial_index_2)
 #         print(n_1, n_2)
-        self.index_G = np.kron(np.ones(n_2), np.arange(n_1)).astype(np.int32)
+        self.index_G = np.kron(np.ones(n_2), np.arange(n_1)).astype(np.int32) 
         self.index_Z = np.kron(np.arange(n_2), np.ones(n_1)).astype(np.int32)
         
 #         print(self.index_G, self.index_Z)
@@ -243,6 +254,12 @@ def TKtest(x,y,Z1,Z2,a,b,P, add_poly = False):
 
 
 def fast_full_kernel_vector_v2(vector, eigvals_of_Gij, vectors_of_Gij, monomials_V, index_Z, index_G, P, add_poly = False):
+    '''
+    We need to compute the product of
+    sum_{ij} P_ij G_ij = sum_ij P_ij D_i hatG_ij D_j, 
+    where D_i = diag(Z_i(X))
+    '''
+    
     output = 0
     
     n1 = np.max(index_G)

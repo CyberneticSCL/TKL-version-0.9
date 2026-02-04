@@ -27,6 +27,7 @@ def findAlpha_lowRankQP(SVM, Kernel, tol =1.e-5, tau0 = 1.e-5): #Y, eigvals_of_G
         index_G = Kernel.index_G
         P    = SVM.Params.P
         rank = SVM.rank
+        additional_rank = SVM.additional_rank
 
     #     print(eigvals_of_Gij.shape, vectors_of_Gij.shape, monomials_V.shape, index_Z.shape, index_G.shape, P.shape)
         Kernel_vector_product = lambda vector: KernelFunctions.fast_full_kernel_vector_v2(vector, 
@@ -35,10 +36,11 @@ def findAlpha_lowRankQP(SVM, Kernel, tol =1.e-5, tau0 = 1.e-5): #Y, eigvals_of_G
 
         N_samples = len(Y)
         A = LinearOperator((N_samples,N_samples), matvec=Kernel_vector_product) # linear operator for EigDec
-        lambdas, vectors = eigsh(A, k=rank)
+        lambdas, vectors = eigsh(A, k=rank + additional_rank)
 
-        SVM.Params.eigvec = vectors
-        SVM.Params.eigval = lambdas
+        ind_sorted = np.argsort(-lambdas)
+        SVM.Params.eigvec = vectors[:, ind_sorted[:rank]]
+        SVM.Params.eigval = lambdas[ind_sorted[:rank]]
         
         V_Q = vectors*np.sqrt(lambdas) # features of kernel
         D_Q = tau0*np.ones(N_samples) # 
@@ -58,8 +60,8 @@ def findAlpha_lowRankQP(SVM, Kernel, tol =1.e-5, tau0 = 1.e-5): #Y, eigvals_of_G
         mu20   = np.ones((N_samples, 1))
         y0     = np.array([[1]])
 
-        dec_var = low_rank_QP.solve_QP_IPM(D_Q, VVQ, c, b, l, u, alpha0, y0, mu10, mu20,
-                                       max_iter = 200, print_losses=0) 
+        dec_var = low_rank_QP.solve_QP_IPM(D_Q, VVQ, c, b, l, u, alpha0, y0, mu10, mu20, 
+                                       max_iter = 200, tol = 1.e-6, print_losses=0) 
         alpha_dec = dec_var[0]
 #         print(alpha_dec)
         r = (VVQ.T@alpha_dec)
@@ -80,6 +82,7 @@ def findAlpha_lowRankQP(SVM, Kernel, tol =1.e-5, tau0 = 1.e-5): #Y, eigvals_of_G
         index_G = Kernel.index_G
         P    = SVM.Params.P
         rank = SVM.rank
+        additional_rank = SVM.additional_rank
 
         # define Kernel Matrix To Vector Product
         #     print(eigvals_of_Gij.shape, vectors_of_Gij.shape, monomials_V.shape, index_Z.shape, index_G.shape, P.shape)
@@ -93,11 +96,14 @@ def findAlpha_lowRankQP(SVM, Kernel, tol =1.e-5, tau0 = 1.e-5): #Y, eigvals_of_G
         
         # Eigen Decomposition of Kernel Matrix
         A = LinearOperator((N_samples,N_samples), matvec=Kernel_vector_product) # linear operator for EigDec
-        lambdas, vectors = eigsh(A, k=rank)
+        lambdas, vectors = eigsh(A, k=rank + additional_rank)
 
         
-        SVM.Params.eigvec = vectors
-        SVM.Params.eigval = lambdas
+        ind_sorted = np.argsort(-lambdas)
+        SVM.Params.eigvec = vectors[:, ind_sorted[:rank]]
+        SVM.Params.eigval = lambdas[ind_sorted[:rank]]
+        
+        
 #         print(A.shape, rank)
         # features for linear SVR
         V_Q = vectors*np.sqrt(np.abs(lambdas)) # features of kernel
@@ -125,7 +131,7 @@ def findAlpha_lowRankQP(SVM, Kernel, tol =1.e-5, tau0 = 1.e-5): #Y, eigvals_of_G
         y0     = np.array([[1]])
         # low rank QP optimization
         dec_var = low_rank_QP.solve_QP_IPM(DD_Q, VVQ, c, b, l, u, alpha0, y0, mu10, mu20,
-                       max_iter = 200, print_losses=0) 
+                       max_iter = 200, tol = 1.e-6, print_losses=0) 
         primal_loss = c.T@dec_var[0]
 #         print(dec_var[-2], dec_var[-1], primal_loss, V_Q.shape)
         # dec variables
@@ -243,6 +249,7 @@ def findP_lowRank(SVM, Kernel):
             
 #         print(eta, Obj)
         
+    
     SVM.Opt.l.append(np.max([SVM.Opt.l[-1], SVM.Opt.Obj[-1] + np.sum(np.sum((P-Pold)*C))]))
     SVM.Opt.dualGap.append(np.abs(Obj - SVM.Opt.l[-1])) # Duality Gap
 
