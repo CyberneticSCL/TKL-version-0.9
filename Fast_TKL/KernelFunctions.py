@@ -16,9 +16,6 @@ class Kernel():
     '''
     def __init__(self, x, Lower, Upper, degree):
 #         self.K = initK(x, Lower, Upper)
-#         if degree ==1 :
-#             self.Z = np.c_[ np.ones(len(x)), x ]  # add 0 monomial 
-#         else:
         self.Z = monomials(x, degree)
         self.b = Upper
         self.a = Lower
@@ -27,31 +24,28 @@ class Kernel():
         
         
     def low_rank_kernel_SVD(self, rank):
-        '''
-        low rank approximation of the kernel matrix
-        '''
         deg1 = 0
         deg2 = self.degree
         X = self.x
 
         N_d = X.shape[-1]
-        # monomial index 1 is always a single element if deg1 = 0
         monomial_index_1 = np.array(list(itertools.product(list(range(deg1+1)), repeat = N_d)))
         monomial_index_1 = monomial_index_1[monomial_index_1.sum(axis = -1) <= deg1][:,::-1]
         # Z1 = monomials(Udata, deg_1)
 
-        # monomial index 2 -- monomials exponents
-#         if deg2 == 1:
-#             monomial_index_2 = np.eye(N_d) # only monomials with the first power
-#         else:
-        monomial_index_2 = np.array(list(itertools.product(list(range(deg2+1)), repeat = N_d)))
-        monomial_index_2 = monomial_index_2[monomial_index_2.sum(axis = -1) <= deg2][:,::-1]
+        if deg2 == 1:
+            monomial_index_2 = np.eye(N_d)
+            monomial_index_2 = np.vstack([np.zeros(N_d), monomial_index_2])
+        else:
+            warning('constructing monomial basis can be slow')
+            monomial_index_2 = np.array(list(itertools.product(list(range(deg2+1)), repeat = N_d)))
+            monomial_index_2 = monomial_index_2[monomial_index_2.sum(axis = -1) <= deg2][:,::-1]
 
         
         n_1 = len(monomial_index_1)
         n_2 = len(monomial_index_2)
 #         print(n_1, n_2)
-        self.index_G = np.kron(np.ones(n_2), np.arange(n_1)).astype(np.int32) 
+        self.index_G = np.kron(np.ones(n_2), np.arange(n_1)).astype(np.int32)
         self.index_Z = np.kron(np.arange(n_2), np.ones(n_1)).astype(np.int32)
         
 #         print(self.index_G, self.index_Z)
@@ -326,4 +320,64 @@ def fast_full_kernel_vector_v2(vector, eigvals_of_Gij, vectors_of_Gij, monomials
 #         print(np.abs(step65 - output).max())
 #         break
         output = output + step65
+    return output
+
+
+def fast_full_kernel_vector_v3(vector, eigvals_of_Gij, vectors_of_Gij, monomials_V, monomials_VP, add_poly = False):
+    '''
+    WORKS ONLY OF G DOES NOT DEPEND ON ij
+    sqrtP -- P^{1/2} = EigVec*sqrt(EigVal)
+    We need to compute the product of
+    sum_{ij} P_ij G_ij = sum_ij P_ij D_i hatG_ij D_j, 
+    where D_i = diag(Z_i(X))
+    '''
+    
+    output = 0
+    
+#     iterations_P = list(itertools.product(range(len(P)), range(len(P))))
+#     error_kernel_approximation = []
+#     approximated_kernels = [] 
+    if add_poly:
+        monomials_times_vector = monomials_V.T@vector
+        output = monomials_V@monomials_times_vector
+    else:
+        output = 0
+    
+ 
+
+    monomials_times_vector = (vector*monomials_VP.T).T #n times n2
+
+#         print(subI1, subI2)
+    Gij_vec = vectors_of_Gij[0, 0]# matrix nxr
+    Gij_val = eigvals_of_Gij[0, 0]# matrix n
+    
+    step1 = Gij_vec.T@monomials_times_vector #r times n2
+#         print(step1.shape)
+    step2 = (step1.T*Gij_val).T #r times n2
+#         print(step2.shape)
+    step3 = Gij_vec@step2 #  n times n2   [:, l] is a product Gij@Diag(monomial_l)@vector  
+    step45 = step3
+    step55 = step45*monomials_VP
+    step65 = np.sum(step55, axis = 1)
+#         print(step3.shape)
+#         for item2 in iterations_n2n2:
+            
+#             i2 = item2[0]
+#             j2 = item2[1]
+
+#             subI1_v = np.argwhere((index_G == i) & (index_Z == i2) )[:, 0]
+#             subI2_v = np.argwhere((index_G == j) & (index_Z == j2) )[:, 0]
+#             sub_value_P = P[subI1_v,  subI2_v] #n2 times n2 submatrix
+        
+#             print(subI1_v, subI2_v, sub_value_P)
+#             step4 = step3[:, j2]*sub_value_P # n times n2
+#     #         print(monomials_V.shape, step4.shape, sub_P.shape)
+#             step5 = monomials_V[:, i2]*step4
+# #         step6 = np.sum(step5, axis = 1)
+# #         print(step5.shape, step4.shape, step3.shape)
+#             output = output + step5
+    
+#         print(np.abs(step65 - output).max())
+#         break
+    output = output + step65
     return output

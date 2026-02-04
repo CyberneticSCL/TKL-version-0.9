@@ -32,20 +32,29 @@ def findAlpha_lowRankQP(SVM, Kernel, tol =1.e-5, tau0 = 1.e-5): #Y, eigvals_of_G
     #     print(eigvals_of_Gij.shape, vectors_of_Gij.shape, monomials_V.shape, index_Z.shape, index_G.shape, P.shape)
         Kernel_vector_product = lambda vector: KernelFunctions.fast_full_kernel_vector_v2(vector, 
                                         eigvals_of_Gij, vectors_of_Gij, monomials_V, index_Z, index_G, P, SVM.Params.add_poly)
+
+        # E, V = np.linalg.eigh(P)
+        # E = np.sqrt(np.abs(E)) # added abs(E) for numerical stability. For SPD E can be -1.e-16
+        # L = V*E
+        # monomials_VP = monomials_V@L
+        
+        # Kernel_vector_product = lambda vector: KernelFunctions.fast_full_kernel_vector_v3(vector, 
+        #                                 eigvals_of_Gij, vectors_of_Gij, monomials_V, monomials_VP, SVM.Params.add_poly)
         #     print(np.prod(grid_structure))
 
         N_samples = len(Y)
         A = LinearOperator((N_samples,N_samples), matvec=Kernel_vector_product) # linear operator for EigDec
-        lambdas, vectors = eigsh(A, k=rank + additional_rank)
+        lambdas, vectors = eigsh(A, k=rank)
 
         ind_sorted = np.argsort(-lambdas)
-        SVM.Params.eigvec = vectors[:, ind_sorted[:rank]]
-        SVM.Params.eigval = lambdas[ind_sorted[:rank]]
+        SVM.Params.eigvec = vectors
+        SVM.Params.eigval = lambdas
         
         V_Q = vectors*np.sqrt(lambdas) # features of kernel
         D_Q = tau0*np.ones(N_samples) # 
 
         VVQ = (V_Q.T*Y).T
+        # VVQ = VVQ/np.sqrt(lambdas.max())
 #         SVM.Kernel.KER_VEC = vectors
 #         SVM.Kernel.KER_lam = lambdas
         u = SVM.Params.C
@@ -64,6 +73,7 @@ def findAlpha_lowRankQP(SVM, Kernel, tol =1.e-5, tau0 = 1.e-5): #Y, eigvals_of_G
                                        max_iter = 200, tol = 1.e-6, print_losses=0) 
         alpha_dec = dec_var[0]
 #         print(alpha_dec)
+        # VVQ = VVQ*np.sqrt(lambdas.max())
         r = (VVQ.T@alpha_dec)
         SVM.Params.alpha = alpha_dec
         rr = (V_Q.T@alpha_dec)
@@ -89,19 +99,25 @@ def findAlpha_lowRankQP(SVM, Kernel, tol =1.e-5, tau0 = 1.e-5): #Y, eigvals_of_G
         Kernel_vector_product = lambda vector: KernelFunctions.fast_full_kernel_vector_v2(vector, 
                                 eigvals_of_Gij, vectors_of_Gij, monomials_V, index_Z, index_G, P, SVM.Params.add_poly)
         #     print(np.prod(grid_structure))
-
+        E, V = np.linalg.eigh(P)
+        E = np.sqrt(np.abs(E))
+        L = V*E
+        monomials_VP = monomials_V@L
+        
+        # Kernel_vector_product = lambda vector: KernelFunctions.fast_full_kernel_vector_v3(vector, 
+                                        # eigvals_of_Gij, vectors_of_Gij, monomials_V, monomials_VP, SVM.Params.add_poly)
         # parameters of SVM
         N_samples = len(Y)
         vareps = SVM.Params.epsilon
         
         # Eigen Decomposition of Kernel Matrix
         A = LinearOperator((N_samples,N_samples), matvec=Kernel_vector_product) # linear operator for EigDec
-        lambdas, vectors = eigsh(A, k=rank + additional_rank)
+        lambdas, vectors = eigsh(A, k=rank)
 
         
         ind_sorted = np.argsort(-lambdas)
-        SVM.Params.eigvec = vectors[:, ind_sorted[:rank]]
-        SVM.Params.eigval = lambdas[ind_sorted[:rank]]
+        SVM.Params.eigvec = vectors
+        SVM.Params.eigval = lambdas
         
         
 #         print(A.shape, rank)
@@ -117,6 +133,7 @@ def findAlpha_lowRankQP(SVM, Kernel, tol =1.e-5, tau0 = 1.e-5): #Y, eigvals_of_G
         # construct for low rank QP
         DD_Q= tau0*np.ones(2*N_samples)
         VVQ = np.block([[V_Q], [-V_Q]])
+        # VVQ = VVQ/np.sqrt(lambdas.max())
         c =  np.block([[-vareps + Y[:, np.newaxis]], [-vareps - Y[:, np.newaxis]]]) 
         b =  np.ones((2*N_samples, 1))
         b[N_samples:,:] = -1 
@@ -247,9 +264,7 @@ def findP_lowRank(SVM, Kernel):
             SVM.Params.P = Pold + eta*(P-Pold) 
             Obj = findAlpha_lowRankQP(SVM,Kernel) # Update alpha
             
-#         print(eta, Obj)
-        
-    
+#         print(eta, Obj) 
     SVM.Opt.l.append(np.max([SVM.Opt.l[-1], SVM.Opt.Obj[-1] + np.sum(np.sum((P-Pold)*C))]))
     SVM.Opt.dualGap.append(np.abs(Obj - SVM.Opt.l[-1])) # Duality Gap
 
@@ -349,6 +364,7 @@ def findP(SVM, Kernel):
     D, V  = np.linalg.eig(C)#  Calculate eigenvalues and eigenvectors
     V = V[:, np.argmin(D)]#  Select the eigenvector that corresponds to the minimum eigenvalue
     P= len(V)*V[:,np.newaxis]@V[:,np.newaxis].T#  Calculate optimal P matrix
+    P = np.real(P)
 #     print(P[0:2, 0:2])
     ### Update P
     Pold = SVM.Params.P # Previous P matrix

@@ -54,12 +54,15 @@ class PMKL_v2():
         self.Opt = Opt()
 
 
+    def preprocessing_step(self, x, y, rank = 500, additional_rank = 0):
         
-    def fit(self, x, y, rank = 500, additional_rank = 0):
         '''
         x:      Inputs to be mapped to outputs y. It should be numpy array (n_samples, n_features)
         y:      Outputs. (n_samples)
         '''
+        print('%%%%%%%%%%%%%%% Preprocessing\t\t %%%%%%%%%%%%%%%%\n')
+
+        self.Params.preprocessing = True
         start = time.time()
         Eps = self.Params.epsilon
         tol = self.Params.tol
@@ -86,10 +89,16 @@ class PMKL_v2():
         else:
             error('x and y must contain the same number of points')
         
+        print('%%%%%%%%%%%%%%% Scaling the data\t\t %%%%%%%%%%%%%%%%\n')
         
-        scaleFactor = MinMaxScaler()
-        self.x  = scaleFactor.fit_transform(self.xOld)
-        self.scaleFactor = scaleFactor
+        
+        # scaleFactor = MinMaxScaler()
+        # self.x  = scaleFactor.fit_transform(self.xOld)
+        self.xmin = self.xOld.min(axis = 0)
+        self.xmax = self.xOld.max(axis = 0)
+        self.x  = (self.xOld - self.xmin)/(self.xmax-self.xmin + 1.e-9) #scaleFactor.fit_transform(self.xOld)
+
+        # self.scaleFactor = scaleFactors
         self.rank = rank
         self.additional_rank = additional_rank
         num, dim = self.x.shape # Dimension and number of inputs
@@ -97,12 +106,34 @@ class PMKL_v2():
         self.Params.Lower =  self.x.min(axis = 0) - self.Params.bound # Lower bounds of integration
         self.Params.Upper =  self.x.max(axis = 0) + self.Params.bound # Upper bounds of integration
         
+        # return self
+        print('%%%%%%%%%%%%%%% Low Rank Approximation of the Kernel Matrix %%%%%%%%%%%%%%%%\n')
         self.Kernel = Kernel(self.x, self.Params.Lower, self.Params.Upper, self.Params.degree)
         self.Kernel.low_rank_kernel_SVD(self.rank + self.additional_rank)
         self.Params.q = self.Kernel.Z.shape[1]
-#         print(self.Kernel.K[1,1].shape, self.Kernel.Z.shape)
         q = self.Params.q 
         self.Params.P = np.eye(q) # Initialize P matrix
+        end = time.time()
+        self.parsing_time = end - start
+        
+        print('The preprocessing step has been finished in %.2e sec. \n' % self.parsing_time)
+        
+        return self
+
+    def fit(self, x, y, rank = 500, additional_rank = 0):
+        '''
+        x:      Inputs to be mapped to outputs y. It should be numpy array (n_samples, n_features)
+        y:      Outputs. (n_samples)
+        '''
+
+        if hasattr(self.Params, 'preprocessing') == False:
+            self.preprocessing_step(x, y, rank, additional_rank)
+        if self.Params.preprocessing == False:
+            self.preprocessing_step(x, y, rank, additional_rank)
+        
+        
+        
+#         print(self.Kernel.K[1,1].shape, self.Kernel.Z.shape)
 
         
 #         if self.Type == 'Classification':
@@ -112,16 +143,18 @@ class PMKL_v2():
             
         maxit = self.Params.maxit
         go = True
+        
         iteration = 0
+        if (iteration > maxit):
+            go = False;
         Obj = Optimization.findAlpha_lowRankQP(self, self.Kernel)
         self.Opt.Obj.append(Obj)
         self.Opt.diff = np.abs(self.Opt.Obj[-1]-self.Opt.Obj[-2])/np.abs(self.Opt.Obj[-1] + self.Opt.Obj[-2])*200 
-        end = time.time()
-        self.parsing_time = end - start
         # Calculates the percent difference between objective values
         if self.to_print:
             print('Iteration   |  Objective   |       Dual Gap      | \n')
             print('------------+--------------+---------------------| \n')
+            print('%10d  |  %1.4e  |  ----- \n' % (0, self.Opt.Obj[-1]))
 
 #         return self
         while go:
@@ -152,7 +185,9 @@ class PMKL_v2():
             alpha_hat = self.Params.eigvec.T@alpha
             alpha_hat = self.Params.eigvec@alpha_hat
             
-        xTest = self.scaleFactor.transform(Xtest_old)
+        # xTest = self.scaleFactor.transform(Xtest_old)
+        
+        xTest =  (Xtest_old - self.xmin)/(self.xmax-self.xmin + 1.e-9) #scaleFactor.fit_transform(self.xOld)
         xtrain = self.x
         
         dimx = xtrain.shape[1]
